@@ -2,10 +2,10 @@
 #include <stdlib.h>
 //#include <conio.h>
 //#include <windows.h>
-#include "rs232.h"
-#include "serial.h"
+#include "rs232/rs232.h"
+#include "serial/serial.h"
 
-#include "log.h"
+#include "log/log.h"
 
 #define bdrate 115200               /* 115200 baud */
 

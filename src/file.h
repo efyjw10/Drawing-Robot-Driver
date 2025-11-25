@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdio.h>
-#include "log.h"
+#include "log/log.h"
 
 FILE OpenFile(char* filePath)
 {
@@ -11,5 +11,6 @@ FILE OpenFile(char* filePath)
     if (pFile == NULL)
     {
         Fatal("File failed to open: %s", filePath);
+        exit();
     }
 }
