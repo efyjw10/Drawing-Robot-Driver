@@ -2,6 +2,8 @@
 #include <stdlib.h>
 
 #include "serial.h"
+
+#include "log/log.h"
 //#include "rs232.h"
 
 
@@ -15,7 +17,7 @@ int CanRS232PortBeOpened ( void )
     char mode[]= {'8','N','1',0};
     if(RS232_OpenComport(cport_nr, bdrate, mode))
     {
-        printf("Can not open comport\n");
+        Fatal("Can not open comport\n");
 
         return(-1);
     }
@@ -32,7 +34,7 @@ void CloseRS232Port (void)
 int PrintBuffer (char *buffer)
 {
     RS232_cputs(cport_nr, buffer);
-    printf("sent: %s\n", buffer);
+    Info("sent: %s\n", buffer);
 
     return (0);
 
@@ -54,20 +56,20 @@ int WaitForDollar (void)
 
         if(n > 0)
         {
-            printf ("RCVD: N = %d ", n);
+            Trace ("RCVD: N = %d ", n);
             buf[n] = 0;   /* always put a "null" at the end of a string! */
 
             for(i=0; i < n; i++)
             {
                 if(buf[i] == '$')  /* replace unreadable control-codes by dots */
                 {
-                    printf("received %i bytes: %s \n", n, (char *)buf);
-                    printf("\nSaw the Dollar");
+                    Info("received %i bytes: %s \n", n, (char *)buf);
+                    Trace("\nSaw the Dollar");
                     return 0;
                 }
             }
 
-            printf("received %i bytes: %s \n", n, (char *)buf);
+            Info("received %i bytes: %s \n", n, (char *)buf);
 
 
             if ( (buf[0] == 'o') && (buf[1] == 'k') )
@@ -99,7 +101,7 @@ int WaitForReply (void)
 
         if(n > 0)
         {
-            printf ("RCVD: N = %d ", n);
+            Info ("RCVD: N = %d ", n);
             buf[n] = 0;   /* always put a "null" at the end of a string! */
 
             for(i=0; i < n; i++)
@@ -110,7 +112,7 @@ int WaitForReply (void)
                 }
             }
 
-            printf("received %i bytes: %s\n", n, (char *)buf);
+            Info("received %i bytes: %s\n", n, (char *)buf);
 
 
             if ( (buf[0] == 'o') && (buf[1] == 'k') )
