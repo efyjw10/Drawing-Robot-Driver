@@ -5,27 +5,92 @@
 #include <stdarg.h>
 #include <string.h>
 
-void Log(int severity, const char* logMessage, ...)
-{
-    va_list args;
-    va_start(args, logMessage);
-    
-    char* severityLookup[6] = {"Debug", "Trace", "Info", "Warn", "Error", "Fatal"};
+#pragma region      ANSI Colour Codes 
+// Codes for terminal colours taken from: https://stackoverflow.com/questions/3219393/stdlib-and-colored-output-in-c
+#define ANSI_COLOR_RED     "\33[31m"
+#define ANSI_COLOR_GREEN   "\33[32m"
+#define ANSI_COLOR_YELLOW  "\33[33m"
+#define ANSI_COLOR_BLUE    "\33[34m"
+#define ANSI_COLOR_MAGENTA "\33[35m"
+#define ANSI_COLOR_CYAN    "\33[36m"
+#define ANSI_COLOR_GRAY    "\33[90m"
+#define ANSI_COLOR_FATAL   "\33[41m"
+#define ANSI_COLOR_RESET   "\33[0m"
+#pragma endregion
 
-    char logFormat[100];
+#define PrefixLength 7
+
+#pragma region      Private Function Declarations 
+char* FormatLogMessage(int severity, const char* logMessage);
+#pragma endregion
+
+void Debug(const char* logMessage, ...) 
+{
+    #ifndef NDEBUG
+    va_list args; va_start(args, logMessage); 
+    char* logFormat = FormatLogMessage(debug, logMessage);
+    vprintf(logFormat, args);
+    va_end(args);
+    #endif
+}
+
+void Trace(const char* logMessage, ...) 
+{ 
+    va_list args; va_start(args, logMessage); 
+    char* logFormat = FormatLogMessage(trace, logMessage);
+    vprintf(logFormat, args);
+    va_end(args); 
+}
+
+void Info(const char* logMessage, ...) 
+{ 
+    va_list args; va_start(args, logMessage); 
+    char* logFormat = FormatLogMessage(info, logMessage);
+    vprintf(logFormat, args);
+    va_end(args); 
+}
+
+void Warn(const char* logMessage, ...) 
+{ 
+    va_list args; va_start(args, logMessage); 
+    char* logFormat = FormatLogMessage(warn, logMessage);
+    vprintf(logFormat, args);
+    va_end(args); 
+}
+
+void Error(const char* logMessage, ...) 
+{ 
+    va_list args; va_start(args, logMessage); 
+    char* logFormat = FormatLogMessage(error, logMessage);
+    vprintf(logFormat, args);
+    va_end(args); 
+}
+
+void Fatal(const char* logMessage, ...) 
+{ 
+    va_list args; va_start(args, logMessage); 
+    char* logFormat = FormatLogMessage(fatal, logMessage);
+    vprintf(logFormat, args);
+    va_end(args); 
+}
+char* FormatLogMessage(int severity, const char* logMessage)
+{
+
+    char* severityLookup[7] =       {"Debug", "Trace", "Info", "Warn", "Error", "Fatal", "Off"};
+    char* severityColourLookup[7] = {   ANSI_COLOR_BLUE, ANSI_COLOR_GRAY, ANSI_COLOR_GREEN, ANSI_COLOR_YELLOW, ANSI_COLOR_RED, ANSI_COLOR_FATAL, ANSI_COLOR_RESET};
+
+    int logFormatLength = PrefixLength + strlen(logMessage);
+    char* logFormat = calloc(logFormatLength, sizeof(char));
     
+    // Generate Log Format
+    strcat(logFormat, severityColourLookup[severity]);
     strcat(logFormat, severityLookup[severity]);
+    strcat(logFormat, ANSI_COLOR_RESET);
     strcat(logFormat, ": ");
     strcat(logFormat, logMessage);
 
-    vprintf(logFormat, args);
+    char* result = logFormat;
 
-    va_end(args);
+
+    return result;
 }
-
-void Debug   (const char* logMessage, ...) { va_list args; va_start(args, logMessage); Log(0,    logMessage, args); va_end(args); }
-void Trace   (const char* logMessage, ...) { va_list args; va_start(args, logMessage); Log(1,    logMessage, args); va_end(args); }
-void Info    (const char* logMessage, ...) { va_list args; va_start(args, logMessage); Log(2,    logMessage, args); va_end(args); }
-void Warn    (const char* logMessage, ...) { va_list args; va_start(args, logMessage); Log(3,    logMessage, args); va_end(args); }
-void Error   (const char* logMessage, ...) { va_list args; va_start(args, logMessage); Log(4,    logMessage, args); va_end(args); }
-void Fatal   (const char* logMessage, ...) { va_list args; va_start(args, logMessage); Log(5,    logMessage, args); va_end(args); }

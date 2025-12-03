@@ -4,5 +4,10 @@
 
 int main()
 {
-    printf("Test Application - This will run through all functions in the program and ensure correct functioning.");
+    printf("\n\n\n");
+    printf("Test Application - This will run through all functions in the program and ensure correct functioning.\n");
+    printf("\n\n\n");
+
+    // --- File Tests --- //
+    printf("File Tests: \n");
 }

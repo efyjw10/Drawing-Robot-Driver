@@ -56,4 +56,7 @@ dkms.conf
 *.dwo
 
 # vscode
-.vscode/
+.vscode/**
+.json
+.vscode/c_cpp_properties.json
+*.code-workspace

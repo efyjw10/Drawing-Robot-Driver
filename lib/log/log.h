@@ -2,7 +2,7 @@
 
 enum LogSeverity
 {
-    debug,
+    debug = 0,
     trace,
     info,
     warn,
@@ -10,7 +10,7 @@ enum LogSeverity
     fatal
 };
 
-void Log(int severity, const char* logMessage, ...);
+void Log(enum LogSeverity severity, const char* logMessage, ...);
 
 void Debug   (const char* logMessage, ...);
 void Trace   (const char* logMessage, ...);

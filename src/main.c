@@ -2,67 +2,87 @@
 #include <stdlib.h>
 //#include <conio.h>
 //#include <windows.h>
-#include "rs232/rs232.h"
-#include "serial/serial.h"
 
+#include "rs232/rs232.h"
 #include "log/log.h"
 
-#define bdrate 115200               /* 115200 baud */
+#include "InputHandling/FileHandling.h"
+#include "InputHandling/InputHandling.h"
 
-void SendCommands (char *buffer );
+#include "RobotControl/RobotControl.h"
+
+#define bdrate 115200
+#define CharacterSetSize 128
+#define LineSpacing 5
+
+void ClearInputBuffer();
 
 int main()
 {
+    Info("Drawing-Robot-Driver - A program to convert a text file to gcode commands sent to an arduino to a drawing robot.\n");
 
-    //char mode[]= {'8','N','1',0};
-    char buffer[100];
+    char* buffer;
 
-    // If we cannot open the port then give up immediately
-    if ( CanRS232PortBeOpened() == -1 )
-    {
-        Fatal("Unable to open the COM port (specified in serial.h) \n");
-        exit(-1);
-    }
+    FILE* fontFile;
+    FILE* inputFile;
 
-    // Time to wake up the robot
+    // --- Load Files into Memory --- //
+    fontFile = LoadFileFromPath("C:/Dev/C++/UoN/Drawing-Robot-Driver/src/SingleStrokeFont.txt");
+    inputFile = LoadFileFromPath("C:/Dev/C++/UoN/Drawing-Robot-Driver/src/test.txt");
+    if (fontFile == NULL || inputFile == NULL) { return -1; }
+
+    // --- Read FontFile and Generate Lookup Table --- //
+    struct CharData FontData[CharacterSetSize];
+    LoadFontDataFromFile(fontFile, FontData);
+    if (FontData == NULL) { return -1; }
+
+    // --- Ask user to input a font size --- //
+    float fontSize = AskUserForFontSize();
+    
+    // --- Initialise Robot --- //
     Trace("Initialising the Robot...\n");
+    if (InitialiseRobot(buffer) == -1) { return -1; }
 
-    // We do this by sending a new-line
-    sprintf (buffer, "\n");
-     // printf ("Buffer to send: %s", buffer); // For diagnostic purposes only, normally comment out
-    PrintBuffer (&buffer[0]);
-    Sleep(100);
+    struct Vertex GlobalOrigin; GlobalOrigin.x = 0; GlobalOrigin.y = 0;
+    struct Vertex WordOrigin; WordOrigin.x = 0; WordOrigin.y = -fontSize;
 
-    // This is a special case - we wait  until we see a dollar ($)
-    WaitForDollar();
+        // --- Read word from input file --- //
+    
+    // Maximum characters supported, any more would spill over page.
+    char inputWord[PageWidth/MinimumFontSize];
+    while (!feof(inputFile))
+    {
+        ReadWordFromInputFile(inputFile, inputWord);
 
-    Info("The robot is now ready to draw.\n");
+        // --- Check if word on its own fits on page --- //
+        if (WordFitsOnPage(inputWord, fontSize, GlobalOrigin) != 1) { Fatal("Word cannot fit on page!"); return -1; }
 
-    //These commands get the robot into 'ready to draw mode' and need to be sent before any writing commands
-    sprintf (buffer, "G1 X0 Y0 F1000\n");
-    SendCommands(buffer);
-    sprintf (buffer, "M3\n");
-    SendCommands(buffer);
-    sprintf (buffer, "S0\n");
-    SendCommands(buffer);
+        // --- Check word will fit on remaining page width --- //
+        if (WordFitsOnPage(inputWord, fontSize, WordOrigin) != 1)
+        {
+            WordOrigin.x = 0;
+            WordOrigin.y -= (fontSize + LineSpacing);
+        }
 
+        // --- Generate gcode for word --- //
+        struct GCodeGeneratorInput input;
+        input.fontSize = fontSize; input.inputWord = inputWord; input.origin = WordOrigin;
+        buffer = GenerateGCodeForWord(&input, FontData);
 
-    // These are sample commands to draw out some information - these are the ones you will be generating.
+        // --- Send Commands --- //
+        SendCommands(buffer);
 
-    // Before we exit the program we need to close the COM port
-    CloseRS232Port();
-    Info("Com port now closed\n");
+        // --- Move beginning of next word to end of previous word --- //
+        WordOrigin.x += strlen(inputWord) * fontSize + fontSize;
 
-    return (0);
-}
+        // --- Clear buffer for next word --- //
+        buffer = "";
+    }
+    
 
-// Send the data to the robot - note in 'PC' mode you need to hit space twice
-// as the dummy 'WaitForReply' has a getch() within the function.
-void SendCommands (char *buffer )
-{
-    // printf ("Buffer to send: %s", buffer); // For diagnostic purposes only, normally comment out
-    PrintBuffer (&buffer[0]);
-    WaitForReply();
-    Sleep(100); // Can omit this when using the writing robot but has minimal effect
-    // getch(); // Omit this once basic testing with emulator has taken place
+    // --- Shut down Robot --- //
+    Info("Shutting down Robot...\n");
+    ShutdownRobot();
+
+    return 0;
 }
