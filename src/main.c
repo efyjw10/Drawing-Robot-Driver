@@ -13,7 +13,6 @@
 
 #define bdrate 115200
 #define CharacterSetSize 128
-#define LineSpacing 5
 
 void ClearInputBuffer();
 
@@ -27,8 +26,8 @@ int main()
     FILE* inputFile;
 
     // --- Load Files into Memory --- //
-    fontFile = LoadFileFromPath("C:/Dev/C++/UoN/Drawing-Robot-Driver/src/SingleStrokeFont.txt");
-    inputFile = LoadFileFromPath("C:/Dev/C++/UoN/Drawing-Robot-Driver/src/test.txt");
+    fontFile = LoadFileFromPath("C:/Users/Jack/Downloads/Drawing-Robot-Driver/src/SingleStrokeFont.txt");
+    inputFile = LoadFileFromPath("C:/Users/Jack/Downloads/Drawing-Robot-Driver/src/test.txt");
     if (fontFile == NULL || inputFile == NULL) { return -1; }
 
     // --- Read FontFile and Generate Lookup Table --- //
@@ -49,10 +48,11 @@ int main()
         // --- Read word from input file --- //
     
     // Maximum characters supported, any more would spill over page.
-    char inputWord[PageWidth/MinimumFontSize];
+    char* inputWord = malloc(100);
     while (!feof(inputFile))
     {
         ReadWordFromInputFile(inputFile, inputWord);
+        int next = (int)GetNextCharacter(inputFile);
 
         // --- Check if word on its own fits on page --- //
         if (WordFitsOnPage(inputWord, fontSize, GlobalOrigin) != 1) { Fatal("Word cannot fit on page!"); return -1; }
@@ -67,16 +67,18 @@ int main()
         // --- Generate gcode for word --- //
         struct GCodeGeneratorInput input;
         input.fontSize = fontSize; input.inputWord = inputWord; input.origin = WordOrigin;
-        buffer = GenerateGCodeForWord(&input, FontData);
+        GenerateGCodeForWord(&input, FontData);
 
-        // --- Send Commands --- //
-        SendCommands(buffer);
-
-        // --- Move beginning of next word to end of previous word --- //
-        WordOrigin.x += strlen(inputWord) * fontSize + fontSize;
-
-        // --- Clear buffer for next word --- //
-        buffer = "";
+        if (next == 10)
+        {
+            WordOrigin.x = 0;
+            WordOrigin.y -= (LineSpacing + fontSize);
+        }
+        else
+        {
+            // --- Move beginning of next word to end of previous word --- //
+            WordOrigin.x += strlen(inputWord) * fontSize + fontSize;
+        }
     }
     
 

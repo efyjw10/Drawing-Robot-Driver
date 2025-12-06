@@ -4,7 +4,7 @@
 #include "serial.h"
 
 #include "log/log.h"
-//#include "rs232.h"
+#include "rs232/rs232.h"
 
 
 //#define Serial_Mode
@@ -156,14 +156,14 @@ int PrintBuffer (char *buffer)
 int WaitForReply (void)
 {
     char c;
-    c = getchar();
+    //c = getchar();
     return (0);
 }
 
 int WaitForDollar (void)
 {
     char c;
-    c = getchar();
+    //c = getchar();
     return (0);
 }
 

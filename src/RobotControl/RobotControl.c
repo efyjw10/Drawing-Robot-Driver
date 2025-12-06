@@ -11,6 +11,9 @@ int InitialiseRobot(char* buffer)
 {
     if ( CanRS232PortBeOpened() == -1 ) { Fatal("Unable to open the COM port \n"); return -1; }
 
+    PrintBuffer("\n");
+    WaitForDollar();
+
     buffer = "G1 X0 Y0 F1000\nM3\nS0\n";
     SendCommands(buffer);
 
@@ -36,20 +39,15 @@ char* GenerateGCodeForWord(struct GCodeGeneratorInput* input, struct CharData Fo
     LetterData.LocalOrigin = input->origin;
     char* inputWord = input->inputWord;
     
-    char* LetterGCode;
-    char WordGCode[10000] = "";
     
     for (int i = 0; i < strlen(input->inputWord); i++)
     {
         int FontDataIndex = (int)inputWord[i];
         LetterData.StrokeCount = FontData[FontDataIndex].StrokeCount;
         LetterData.StrokeData = FontData[FontDataIndex].StrokeData;
+        int characterEncoded = FontData[FontDataIndex].characterEncoded;
 
-        LetterGCode = GenerateGCodeForLetter(LetterData, input->fontSize);
-
-        strcat(WordGCode, LetterGCode);
-
-        LetterGCode = "";
+        GenerateGCodeForLetter(LetterData, input->fontSize);
 
         // Set new letter origin to last position in previous letter
 
@@ -57,6 +55,7 @@ char* GenerateGCodeForWord(struct GCodeGeneratorInput* input, struct CharData Fo
 
         NewPosition.x = NewPosition.x * input->fontSize / DefaultFontSize + LetterData.LocalOrigin.x;
         NewPosition.y = NewPosition.y * input->fontSize / DefaultFontSize + LetterData.LocalOrigin.y;
+        
 
         LetterData.LocalOrigin = NewPosition;
     }
@@ -64,18 +63,13 @@ char* GenerateGCodeForWord(struct GCodeGeneratorInput* input, struct CharData Fo
     // Add space
     LetterData.StrokeCount = FontData[32].StrokeCount;
     LetterData.StrokeData = FontData[32].StrokeData;
-    LetterGCode = GenerateGCodeForLetter(LetterData, input->fontSize);
-    strcat(WordGCode, LetterGCode);
+    GenerateGCodeForLetter(LetterData, input->fontSize);
 
-    char* GCodeCommands = WordGCode;
-
-    return GCodeCommands;
+    return "";
 }
 
 char* GenerateGCodeForLetter(struct PenStrokeSeries LetterData, float fontSize)
 {
-    char LetterGCode[1000] = "";
-
     int PreviousPenDownStatus = 0;
 
     // Check if PenDownStatus is changed from previous command
@@ -87,7 +81,8 @@ char* GenerateGCodeForLetter(struct PenStrokeSeries LetterData, float fontSize)
             if (LetterData.StrokeData[i].PenDownStatus == 1)    {   PenCommand = "S1000\n";   }
             else                                                {   PenCommand = "S0\n";      }
 
-            strcat(LetterGCode, PenCommand);
+            SendCommands(PenCommand);
+
         }
 
         char* DrawOrMove;
@@ -98,21 +93,20 @@ char* GenerateGCodeForLetter(struct PenStrokeSeries LetterData, float fontSize)
         struct Vertex NewPosition = LetterData.StrokeData[i].NewPosition;
 
         // Scale and translate new position to correct coordinate
+        
         NewPosition.x = NewPosition.x * fontSize / DefaultFontSize + LetterData.LocalOrigin.x;
         NewPosition.y = NewPosition.y * fontSize / DefaultFontSize + LetterData.LocalOrigin.y;
 
         char StrokeGCode[25];
         sprintf(StrokeGCode, "G%s X%.2f Y%.2f\n", DrawOrMove, NewPosition.x, NewPosition.y);
 
-        strcat(LetterGCode, StrokeGCode);
+        SendCommands(StrokeGCode);
 
 
         PreviousPenDownStatus = LetterData.StrokeData[i].PenDownStatus;
     }
 
-    char* GCode = LetterGCode;
-
-    return GCode;
+    return "";
 }
 
 // Send the data to the robot - note in 'PC' mode you need to hit space twice
@@ -122,6 +116,6 @@ void SendCommands(char* buffer)
     // printf ("Buffer to send: %s", buffer); // For diagnostic purposes only, normally comment out
     PrintBuffer (&buffer[0]);
     WaitForReply();
-    Sleep(100); // Can omit this when using the writing robot but has minimal effect
+    //Sleep(100); // Can omit this when using the writing robot but has minimal effect
     // getch(); // Omit this once basic testing with emulator has taken place
 }

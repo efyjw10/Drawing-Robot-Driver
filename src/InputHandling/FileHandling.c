@@ -71,11 +71,16 @@ void LoadFontDataFromFile(FILE* fontFile, struct CharData FontData[])
 
 char* ReadWordFromInputFile(FILE* inputFile, char* inputWord)
 {
-    int test = fscanf(inputFile, "%s ", inputWord);
+    int test = fscanf(inputFile, "%s", inputWord);
     if (test == EOF)
     {
         Fatal("Failed to Read File!");
         return NULL;
     }
     return inputWord;
+}
+
+char GetNextCharacter(FILE* inputFile)
+{
+    return fgetc(inputFile);
 }

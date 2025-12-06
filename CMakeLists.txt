@@ -27,4 +27,4 @@ target_link_libraries(TestApplication log rs232)
 
 set(CMAKE_BUILD_RPATH "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}")
 
-target_compile_definitions(DrawingRobotDriver PRIVATE PageWidth=100 MinimumFontSize=4 MaximumFontSize=10 DefaultFontSize=18)
+target_compile_definitions(DrawingRobotDriver PRIVATE PageWidth=100 MinimumFontSize=4 MaximumFontSize=10 DefaultFontSize=18 LineSpacing=5)
