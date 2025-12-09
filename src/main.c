@@ -12,15 +12,13 @@
 #include "RobotControl/RobotControl.h"
 
 #define bdrate 115200
-#define CharacterSetSize 128
+#define EOL 10
 
 void ClearInputBuffer();
 
 int main()
 {
-    Info("Drawing-Robot-Driver - A program to convert a text file to gcode commands sent to an arduino to a drawing robot.\n");
-
-    char* buffer;
+    printf("Drawing-Robot-Driver - A program to convert a text file to gcode commands sent to an arduino to a drawing robot.\n");
 
     FILE* fontFile;
     FILE* inputFile;
@@ -39,8 +37,8 @@ int main()
     float fontSize = AskUserForFontSize();
     
     // --- Initialise Robot --- //
-    Trace("Initialising the Robot...\n");
-    if (InitialiseRobot(buffer) == -1) { return -1; }
+    printf("Initialising the Robot...\n");
+    if (InitialiseRobot() == -1) { return -1; }
 
     struct Vertex GlobalOrigin; GlobalOrigin.x = 0; GlobalOrigin.y = 0;
     struct Vertex WordOrigin; WordOrigin.x = 0; WordOrigin.y = -fontSize;
@@ -48,11 +46,12 @@ int main()
         // --- Read word from input file --- //
     
     // Maximum characters supported, any more would spill over page.
-    char* inputWord = malloc(100);
+    char* inputWord = calloc(PageWidth/MinimumFontSize, sizeof(char));
+
     while (!feof(inputFile))
     {
         ReadWordFromInputFile(inputFile, inputWord);
-        int next = (int)GetNextCharacter(inputFile);
+        int next = GetNextCharacterCode(inputFile);
 
         // --- Check if word on its own fits on page --- //
         if (WordFitsOnPage(inputWord, fontSize, GlobalOrigin) != 1) { Fatal("Word cannot fit on page!"); return -1; }
@@ -66,10 +65,12 @@ int main()
 
         // --- Generate gcode for word --- //
         struct GCodeGeneratorInput input;
-        input.fontSize = fontSize; input.inputWord = inputWord; input.origin = WordOrigin;
-        GenerateGCodeForWord(&input, FontData);
+        input.fontSize = fontSize; input.inputWord = inputWord; input.origin = WordOrigin; input.fontData = FontData;
 
-        if (next == 10)
+        printf("Generating gcode for: %s\n", input.inputWord);
+        GenerateGCodeForWord(&input);
+
+        if (next == EOL)
         {
             WordOrigin.x = 0;
             WordOrigin.y -= (LineSpacing + fontSize);
@@ -80,10 +81,12 @@ int main()
             WordOrigin.x += strlen(inputWord) * fontSize + fontSize;
         }
     }
+
+    free(inputWord);
     
 
     // --- Shut down Robot --- //
-    Info("Shutting down Robot...\n");
+    printf("Shutting down Robot...\n");
     ShutdownRobot();
 
     return 0;

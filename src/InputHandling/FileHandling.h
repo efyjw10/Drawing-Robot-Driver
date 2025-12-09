@@ -12,4 +12,4 @@ void LoadFontDataFromFile(FILE* fontFile, struct CharData FontData[]);
 
 char* ReadWordFromInputFile(FILE* inputFile, char* inputWord);
 
-char GetNextCharacter(FILE* inputFile);
+int GetNextCharacterCode(FILE* inputFile);

@@ -7,7 +7,9 @@ enum LogSeverity
     info,
     warn,
     error,
-    fatal
+    fatal,
+    off,
+    severityCount,
 };
 
 void Log(enum LogSeverity severity, const char* logMessage, ...);

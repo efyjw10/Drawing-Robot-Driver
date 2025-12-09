@@ -6,23 +6,34 @@
 
 #include "log/log.h"
 
+#define SpaceChar 32
+
 // Initialise Robot and send all preliminary commands
-int InitialiseRobot(char* buffer)
+int InitialiseRobot()
 {
     if ( CanRS232PortBeOpened() == -1 ) { Fatal("Unable to open the COM port \n"); return -1; }
 
     PrintBuffer("\n");
     WaitForDollar();
 
-    buffer = "G1 X0 Y0 F1000\nM3\nS0\n";
+    char* buffer = "G1 X0 Y0 F1000\nM3\nS0\n";
     SendCommands(buffer);
 
     return 0;
 }
 
+// Send the data to the robot
+void SendCommands(char* buffer)
+{
+    PrintBuffer (&buffer[0]);
+    WaitForReply();
+}
+
+// Shut down robot
 int ShutdownRobot()
 {
     CloseRS232Port();
+    getchar();
     return 0;
 }
 
@@ -33,7 +44,7 @@ int WordFitsOnPage(char* inputWord, float fontSize, struct Vertex origin)
     return 1;
 }
 
-char* GenerateGCodeForWord(struct GCodeGeneratorInput* input, struct CharData FontData[])
+int GenerateGCodeForWord(struct GCodeGeneratorInput* input)
 {    
     struct PenStrokeSeries LetterData;
     LetterData.LocalOrigin = input->origin;
@@ -43,9 +54,9 @@ char* GenerateGCodeForWord(struct GCodeGeneratorInput* input, struct CharData Fo
     for (int i = 0; i < strlen(input->inputWord); i++)
     {
         int FontDataIndex = (int)inputWord[i];
-        LetterData.StrokeCount = FontData[FontDataIndex].StrokeCount;
-        LetterData.StrokeData = FontData[FontDataIndex].StrokeData;
-        int characterEncoded = FontData[FontDataIndex].characterEncoded;
+        LetterData.StrokeCount = input->fontData[FontDataIndex].StrokeCount;
+        LetterData.StrokeData = input->fontData[FontDataIndex].StrokeData;
+        int characterEncoded = input->fontData[FontDataIndex].characterEncoded;
 
         GenerateGCodeForLetter(LetterData, input->fontSize);
 
@@ -61,16 +72,17 @@ char* GenerateGCodeForWord(struct GCodeGeneratorInput* input, struct CharData Fo
     }
 
     // Add space
-    LetterData.StrokeCount = FontData[32].StrokeCount;
-    LetterData.StrokeData = FontData[32].StrokeData;
+    LetterData.StrokeCount = input->fontData[SpaceChar].StrokeCount;
+    LetterData.StrokeData = input->fontData[SpaceChar].StrokeData;
     GenerateGCodeForLetter(LetterData, input->fontSize);
 
-    return "";
+    return 0;
 }
 
-char* GenerateGCodeForLetter(struct PenStrokeSeries LetterData, float fontSize)
+int GenerateGCodeForLetter(struct PenStrokeSeries LetterData, float fontSize)
 {
     int PreviousPenDownStatus = 0;
+    char* StrokeGCode = calloc(50, sizeof(char));
 
     // Check if PenDownStatus is changed from previous command
     for (int i = 0; i < LetterData.StrokeCount; i++)
@@ -85,10 +97,10 @@ char* GenerateGCodeForLetter(struct PenStrokeSeries LetterData, float fontSize)
 
         }
 
-        char* DrawOrMove;
 
-        if (LetterData.StrokeData[i].PenDownStatus == 1)    DrawOrMove = "1";
-        else                                                DrawOrMove = "0";
+        // Convert int PenDownStatus to char of 0 or 1
+        char zero = '0';
+        char DrawOrMove = (char)(LetterData.StrokeData[i].PenDownStatus + (int)zero);
 
         struct Vertex NewPosition = LetterData.StrokeData[i].NewPosition;
 
@@ -97,25 +109,13 @@ char* GenerateGCodeForLetter(struct PenStrokeSeries LetterData, float fontSize)
         NewPosition.x = NewPosition.x * fontSize / DefaultFontSize + LetterData.LocalOrigin.x;
         NewPosition.y = NewPosition.y * fontSize / DefaultFontSize + LetterData.LocalOrigin.y;
 
-        char StrokeGCode[25];
-        sprintf(StrokeGCode, "G%s X%.2f Y%.2f\n", DrawOrMove, NewPosition.x, NewPosition.y);
-
+        sprintf(StrokeGCode, "G%c X%.2f Y%.2f\n", DrawOrMove, NewPosition.x, NewPosition.y);
         SendCommands(StrokeGCode);
-
 
         PreviousPenDownStatus = LetterData.StrokeData[i].PenDownStatus;
     }
 
-    return "";
-}
+    free(StrokeGCode);
 
-// Send the data to the robot - note in 'PC' mode you need to hit space twice
-// as the dummy 'WaitForReply' has a getch() within the function.
-void SendCommands(char* buffer)
-{
-    // printf ("Buffer to send: %s", buffer); // For diagnostic purposes only, normally comment out
-    PrintBuffer (&buffer[0]);
-    WaitForReply();
-    //Sleep(100); // Can omit this when using the writing robot but has minimal effect
-    // getch(); // Omit this once basic testing with emulator has taken place
+    return 0;
 }

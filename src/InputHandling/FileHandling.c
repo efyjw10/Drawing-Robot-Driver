@@ -80,7 +80,7 @@ char* ReadWordFromInputFile(FILE* inputFile, char* inputWord)
     return inputWord;
 }
 
-char GetNextCharacter(FILE* inputFile)
+int GetNextCharacterCode(FILE* inputFile)
 {
     return fgetc(inputFile);
 }

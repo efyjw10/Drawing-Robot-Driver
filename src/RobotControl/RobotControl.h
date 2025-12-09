@@ -26,6 +26,7 @@ struct PenStrokeSeries
 struct CharData
 {
     char characterEncoded;
+    int FontSize;
     int StrokeCount;
     struct PenStroke* StrokeData;
 };
@@ -35,15 +36,16 @@ struct GCodeGeneratorInput
     char* inputWord;
     float fontSize;
     struct Vertex origin;
+    struct CharData* fontData;
 };
 
 
-int InitialiseRobot(char* buffer);
+int InitialiseRobot();
 int ShutdownRobot();
 
 int WordFitsOnPage(char* inputWord, float fontSize, struct Vertex Origin);
 
-char* GenerateGCodeForWord(struct GCodeGeneratorInput* input, struct CharData FontData[]);
-char* GenerateGCodeForLetter(struct PenStrokeSeries LetterData, float fontSize);
+int GenerateGCodeForWord(struct GCodeGeneratorInput* input);
+int GenerateGCodeForLetter(struct PenStrokeSeries LetterData, float fontSize);
 
 void SendCommands(char* buffer);
