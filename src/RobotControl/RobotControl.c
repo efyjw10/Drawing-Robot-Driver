@@ -4,11 +4,11 @@
 #include "SerialOutput/serial.h"
 #include "rs232/rs232.h"
 
-#include "log/log.h"
+#include "logger/logger.h"
 
 #define SpaceChar 32
 
-// Initialise Robot and send all preliminary commands
+
 int InitialiseRobot()
 {
     if ( CanRS232PortBeOpened() == -1 ) { Fatal("Unable to open the COM port \n"); return -1; }
@@ -22,26 +22,35 @@ int InitialiseRobot()
     return 0;
 }
 
-// Send the data to the robot
 void SendCommands(char* buffer)
 {
     PrintBuffer (&buffer[0]);
     WaitForReply();
 }
 
-// Shut down robot
-int ShutdownRobot()
+
+void ShutdownRobot()
 {
+    // Move pen up from page and return to global origin
+    PrintBuffer("S0\n");
+    WaitForReply();
+    PrintBuffer("G0 X0 Y0 F1000\n");
+    WaitForReply();
+
     CloseRS232Port();
+
+    Info("Robot successfully shut down. Press enter to exit.");
+
+    // Pause window so user can see robot shut down correctly.
     getchar();
-    return 0;
+    return;
 }
 
-int WordFitsOnPage(char* inputWord, float fontSize, struct Vertex origin)
+int CheckWordFitsOnPage(char* inputWord, float fontSize, struct Vertex origin)
 {
     float spaceNeeded = strlen(inputWord)*(fontSize);
-    if (PageWidth - origin.x < spaceNeeded) { return 0; }
-    return 1;
+    if (PageWidth - origin.x < spaceNeeded) { return -1; }
+    return 0;
 }
 
 int GenerateGCodeForWord(struct GCodeGeneratorInput* input)
@@ -53,10 +62,13 @@ int GenerateGCodeForWord(struct GCodeGeneratorInput* input)
     
     for (int i = 0; i < strlen(input->inputWord); i++)
     {
-        int FontDataIndex = (int)inputWord[i];
-        LetterData.StrokeCount = input->fontData[FontDataIndex].StrokeCount;
-        LetterData.StrokeData = input->fontData[FontDataIndex].StrokeData;
-        int characterEncoded = input->fontData[FontDataIndex].characterEncoded;
+        int LetterIndex = (int)inputWord[i];
+
+        if (LetterIndex < 0 || LetterIndex > CharacterSetSize) { Error("Character '%c' not supported!\n"); return -1; }
+
+        LetterData.StrokeCount = input->fontData[LetterIndex].CharacterStrokes.StrokeCount;
+        LetterData.StrokeData = input->fontData[LetterIndex].CharacterStrokes.StrokeData;
+        int characterEncoded = input->fontData[LetterIndex].characterEncoded;
 
         GenerateGCodeForLetter(LetterData, input->fontSize);
 
@@ -72,8 +84,8 @@ int GenerateGCodeForWord(struct GCodeGeneratorInput* input)
     }
 
     // Add space
-    LetterData.StrokeCount = input->fontData[SpaceChar].StrokeCount;
-    LetterData.StrokeData = input->fontData[SpaceChar].StrokeData;
+    LetterData.StrokeCount = input->fontData[SpaceChar].CharacterStrokes.StrokeCount;
+    LetterData.StrokeData = input->fontData[SpaceChar].CharacterStrokes.StrokeData;
     GenerateGCodeForLetter(LetterData, input->fontSize);
 
     return 0;

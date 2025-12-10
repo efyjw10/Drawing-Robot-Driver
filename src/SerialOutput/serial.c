@@ -3,7 +3,7 @@
 
 #include "serial.h"
 
-#include "log/log.h"
+#include "logger/logger.h"
 #include "rs232/rs232.h"
 
 
@@ -34,7 +34,7 @@ void CloseRS232Port (void)
 int PrintBuffer (char *buffer)
 {
     RS232_cputs(cport_nr, buffer);
-    Info("sent: %s\n", buffer);
+    FileLog(buffer);
 
     return (0);
 
@@ -148,7 +148,7 @@ void CloseRS232Port (void)
 // JIB: you MUST specify variable types in function definitions
 int PrintBuffer (char *buffer)
 {
-    printf("Sending: %s",buffer);
+    FileLog(buffer);
     return (0);
 }
 
